@@ -1,0 +1,42 @@
+name: Deploy Lambda to S3
+
+on:
+  push:
+    branches:
+      - main # Run this workflow on every push to the main branch
+env:
+  AWS_REGION: us-east-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    # Install dependencies if needed
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # Zip the Lambda function
+    - name: Create Zip file
+      run: |
+        zip -r image_time_analysis.zip image_time_analysis.py
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::713984691710:role/github_action_role
+        aws-region: ${{ env.AWS_REGION }}
+          
+    # Upload the zip file to the S3 bucket
+    - name: Upload to S3
+      run: aws s3 cp image_time_analysis.zip s3://mc-portfolio-s3-4-lambdas/img_processing/image_time_analysis.zip
