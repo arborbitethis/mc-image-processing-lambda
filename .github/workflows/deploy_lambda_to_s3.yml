@@ -47,7 +47,7 @@ jobs:
 
     # Package Lambda function into a separate ZIP file
     - name: Create Zip file for Lambda Function
-      run: zip -r lambda_function.zip <your lambda function file(s)>
+      run: zip -r lambda_function.zip image_time_analysis.py
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -57,7 +57,7 @@ jobs:
           
     # Upload the layer ZIP file to the S3 bucket
     - name: Upload Layer to S3
-      run: aws s3 cp layer.zip s3://mc-portfolio-s3-4-lambdas/img_processing/dependency_layer.zip
+      run: aws s3 cp layer.zip s3://mc-portfolio-s3-4-lambdas/lambda_layers/layer.zip
 
     # Upload the Lambda function ZIP file to the S3 bucket
     - name: Upload Lambda to S3
