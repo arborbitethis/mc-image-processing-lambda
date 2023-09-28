@@ -1,22 +1,30 @@
 import boto3
 import tempfile
 import json
-from PIL import Image, ExifTags
+from PIL import Image, ExifTags, TiffTags
 
 def clean_exif_data(exif_data):
     clean_data = {}
     for tag, value in exif_data.items():
         tag_name = ExifTags.TAGS.get(tag, tag)
+        
         if isinstance(value, bytes):
             try:
                 clean_value = value.decode('utf-8')
-                clean_data[tag_name] = clean_value
-            except:
-                # Do not add to clean_data if it can't be decoded
-                continue
+            except UnicodeDecodeError:
+                clean_value = value.hex()
+        
+        elif "IFDRational" in str(type(value)):  # Check if the type is IFDRational
+            # You can customize this; here we convert the rational to a float
+            clean_value = float(value.numerator) / float(value.denominator)
+        
         else:
-            clean_data[tag_name] = value
+            clean_value = value
+
+        clean_data[tag_name] = clean_value
+
     return clean_data
+
 
 def lambda_handler(event, context):
     # Initialize S3 client
