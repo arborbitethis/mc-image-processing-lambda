@@ -1,4 +1,4 @@
-name: Deploy Lambda to S3
+name: Deploy Lambda and Layer to S3
 
 on:
   push:
@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-        id-token: write
-        contents: read
+      id-token: write
+      contents: read
 
     steps:
     - name: Checkout code
@@ -37,12 +37,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Package dependencies and the Lambda function into a ZIP file
-    - name: Create Zip file with dependencies
+    # Package dependencies into a ZIP file for Lambda Layer
+    - name: Create Zip file for Lambda Layer
       run: |
         source lambda-env/bin/activate
-        cp -r lambda-env/lib/python3.9/site-packages/. .
-        zip -r image_time_analysis.zip .
+        mkdir python
+        cp -r lambda-env/lib/python3.9/site-packages/. python/
+        zip -r layer.zip python/
+
+    # Package Lambda function into a separate ZIP file
+    - name: Create Zip file for Lambda Function
+      run: zip -r lambda_function.zip <your lambda function file(s)>
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -50,6 +55,10 @@ jobs:
         role-to-assume: arn:aws:iam::713984691710:role/github_action_role
         aws-region: ${{ env.AWS_REGION }}
           
-    # Upload the zip file to the S3 bucket
-    - name: Upload to S3
-      run: aws s3 cp image_time_analysis.zip s3://mc-portfolio-s3-4-lambdas/img_processing/image_time_analysis.zip
+    # Upload the layer ZIP file to the S3 bucket
+    - name: Upload Layer to S3
+      run: aws s3 cp layer.zip s3://mc-portfolio-s3-4-lambdas/img_processing/dependency_layer.zip
+
+    # Upload the Lambda function ZIP file to the S3 bucket
+    - name: Upload Lambda to S3
+      run: aws s3 cp lambda_function.zip s3://mc-portfolio-s3-4-lambdas/img_processing/lambda_function.zip
