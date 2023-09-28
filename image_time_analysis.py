@@ -1,7 +1,7 @@
 import boto3
 import tempfile
 import json
-from PIL import Image
+from PIL import Image, ExifTags
 
 def lambda_handler(event, context):
     # Initialize S3 client
@@ -17,11 +17,23 @@ def lambda_handler(event, context):
         fp.seek(0)
         
         # Read EXIF data using PIL
-        image_pil = Image.open(fp)
-        exif_data = image_pil._getexif()
+        try:
+            image_pil = Image.open(fp)
+            raw_exif_data = image_pil._getexif()
+        except Exception as e:
+            return {
+                'statusCode': 500,
+                'body': f"Error reading EXIF data: {str(e)}"
+            }
+
+        # Map EXIF data to human-readable tags
+        if raw_exif_data:
+            exif_data = {ExifTags.TAGS.get(tag, tag): value for tag, value in raw_exif_data.items()}
+        else:
+            exif_data = {}
 
         # Convert EXIF data to JSON
-        exif_data_json = json.dumps(exif_data, default=str) if exif_data else json.dumps({})
+        exif_data_json = json.dumps(exif_data, default=str)
 
     return {
         'statusCode': 200,
