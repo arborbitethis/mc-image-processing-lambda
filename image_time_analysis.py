@@ -1,9 +1,39 @@
 import cv2
-import numpy as np
 import boto3
 import tempfile
+import array
 from PIL import Image
 from datetime import datetime
+
+def average_brightness(image):
+    total_brightness = 0
+    total_pixels = 0
+    height, width, _ = image.shape
+
+    for x in range(height):
+        for y in range(width):
+            pixel = image[x, y]
+            total_brightness += sum(pixel)/3  # Average of RGB
+            total_pixels += 1
+    
+    avg_brightness = total_brightness / total_pixels
+    return avg_brightness
+
+def average_color(image):
+    total_color = [0, 0, 0]
+    total_pixels = 0
+    height, width, _ = image.shape
+
+    for x in range(height):
+        for y in range(width):
+            pixel = image[x, y]
+            total_color[0] += pixel[0]
+            total_color[1] += pixel[1]
+            total_color[2] += pixel[2]
+            total_pixels += 1
+
+    avg_color = [x / total_pixels for x in total_color]
+    return avg_color
 
 def lambda_handler(event, context):
     # Initialize S3 client
@@ -14,10 +44,17 @@ def lambda_handler(event, context):
     key = event['Records'][0]['s3']['object']['key']
 
     # Download the image to a temporary file
+    # Read the image to a temporary file
     with tempfile.NamedTemporaryFile() as fp:
         s3_client.download_fileobj(bucket, key, fp)
         fp.seek(0)
 
+        # Create an array from the buffer
+        image_buffer = array('B', fp.read())
+
+        # Read the image using OpenCV
+        image = cv2.imdecode(image_buffer, cv2.IMREAD_COLOR)
+        
         # Read EXIF data using PIL
         image_pil = Image.open(fp)
         exif_data = image_pil._getexif()
@@ -39,17 +76,9 @@ def lambda_handler(event, context):
 
         fp.seek(0)
         
-        # Read the image using OpenCV
-        image_np = np.frombuffer(fp.read(), np.uint8)
-        image = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
-        
-        # Calculate brightness of the image
-        brightness = np.average(image)
-        
-        # Calculate average color of the image
-        avg_color_per_row = np.average(image, axis=0)
-        avg_color = np.average(avg_color_per_row, axis=0)
-        
+        brightness = average_brightness(image)
+        avg_color = average_color(image)
+
         # Determine estimated time of day based on brightness and average color
         estimated_time = "Unknown"
         
