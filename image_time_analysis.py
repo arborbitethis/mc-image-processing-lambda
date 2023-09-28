@@ -3,26 +3,26 @@ import tempfile
 import json
 from PIL import Image, ExifTags, TiffTags
 
+def recursive_serialize(obj):
+    if isinstance(obj, dict):
+        return {k: recursive_serialize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [recursive_serialize(e) for e in obj]
+    elif "IFDRational" in str(type(obj)):
+        return float(obj.numerator) / float(obj.denominator)
+    elif isinstance(obj, bytes):
+        try:
+            return obj.decode('utf-8')
+        except UnicodeDecodeError:
+            return obj.hex()
+    else:
+        return obj
+
 def clean_exif_data(exif_data):
     clean_data = {}
     for tag, value in exif_data.items():
         tag_name = ExifTags.TAGS.get(tag, tag)
-        
-        if isinstance(value, bytes):
-            try:
-                clean_value = value.decode('utf-8')
-            except UnicodeDecodeError:
-                clean_value = value.hex()
-        
-        elif "IFDRational" in str(type(value)):  # Check if the type is IFDRational
-            # You can customize this; here we convert the rational to a float
-            clean_value = float(value.numerator) / float(value.denominator)
-        
-        else:
-            clean_value = value
-
-        clean_data[tag_name] = clean_value
-
+        clean_data[tag_name] = recursive_serialize(value)
     return clean_data
 
 
