@@ -57,7 +57,7 @@ jobs:
           
     # Upload the layer ZIP file to the S3 bucket
     - name: Upload Layer to S3
-      run: aws s3 cp layer.zip s3://mc-portfolio-s3-4-lambdas/lambda_layers/layer.zip
+      run: aws s3 cp layer.zip s3://mc-portfolio-s3-4-lambdas/img_processing/dependency_layer.zip
 
     # Upload the Lambda function ZIP file to the S3 bucket
     - name: Upload Lambda to S3
