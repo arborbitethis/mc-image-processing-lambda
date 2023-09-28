@@ -3,6 +3,21 @@ import tempfile
 import json
 from PIL import Image, ExifTags
 
+def clean_exif_data(exif_data):
+    clean_data = {}
+    for tag, value in exif_data.items():
+        tag_name = ExifTags.TAGS.get(tag, tag)
+        if isinstance(value, bytes):
+            try:
+                clean_value = value.decode('utf-8')
+                clean_data[tag_name] = clean_value
+            except:
+                # Do not add to clean_data if it can't be decoded
+                continue
+        else:
+            clean_data[tag_name] = value
+    return clean_data
+
 def lambda_handler(event, context):
     # Initialize S3 client
     s3_client = boto3.client('s3')
@@ -16,24 +31,16 @@ def lambda_handler(event, context):
         s3_client.download_fileobj(bucket, key, fp)
         fp.seek(0)
         
-        # Read EXIF data using PIL
-        try:
-            image_pil = Image.open(fp)
-            raw_exif_data = image_pil._getexif()
-        except Exception as e:
-            return {
-                'statusCode': 500,
-                'body': f"Error reading EXIF data: {str(e)}"
-            }
-
-        # Map EXIF data to human-readable tags
-        if raw_exif_data:
-            exif_data = {ExifTags.TAGS.get(tag, tag): value for tag, value in raw_exif_data.items()}
+      # Read EXIF data using PIL
+        image_pil = Image.open(fp)
+        exif_data = image_pil._getexif()
+        if exif_data:
+            # Clean and convert EXIF data to JSON
+            clean_data = clean_exif_data(exif_data)
+            exif_data_json = json.dumps(clean_data)
         else:
-            exif_data = {}
+            exif_data_json = json.dumps({})
 
-        # Convert EXIF data to JSON
-        exif_data_json = json.dumps(exif_data, default=str)
 
     return {
         'statusCode': 200,
