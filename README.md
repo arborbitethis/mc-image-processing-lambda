@@ -42,20 +42,6 @@ Pillow (PIL) is used to read the EXIF data from the image, which contains the ti
 - Evening
 - Night
 
-### Image Analysis
-
-OpenCV (cv2) and NumPy (numpy) are used to perform the following tasks:
-
-1. Calculate the average brightness of the image
-2. Calculate the average color of the image
-
-Based on these calculations, the function estimates the time of day the photo might represent. This is purely based on visual information and classified into:
-
-- Day
-- Morning/Evening
-- Night
-- Artificial Light/Evening
-
 ### Response
 
 The function returns a JSON object containing both the estimated time of day based on visual characteristics and the actual time of day based on the EXIF data.

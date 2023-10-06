@@ -1,8 +1,12 @@
 import boto3
 import tempfile
 import json
+import logging
 from PIL import Image, ExifTags, TiffTags
 
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def recursive_serialize(obj):
     #print(f"Type of obj: {type(obj)}")  # Debugging print statement
@@ -38,30 +42,44 @@ def clean_exif_data(exif_data):
 
 
 def lambda_handler(event, context):
-    # Initialize S3 client
-    s3_client = boto3.client('s3')
+    try:
+        # Initialize S3 client
+        s3_client = boto3.client('s3')
 
-    # Extract bucket and object key from the event
-    bucket = event['Records'][0]['s3']['bucket']['name']
-    key = event['Records'][0]['s3']['object']['key']
+        # Extract bucket and object key from the event
+        bucket = event['Records'][0]['s3']['bucket']['name']
+        key = event['Records'][0]['s3']['object']['key']
 
-    # Download the image to a temporary file
-    with tempfile.NamedTemporaryFile() as fp:
-        s3_client.download_fileobj(bucket, key, fp)
-        fp.seek(0)
+        # Download the image to a temporary file
+        with tempfile.NamedTemporaryFile() as fp:
+            s3_client.download_fileobj(bucket, key, fp)
+            fp.seek(0)
+            
+        # Read EXIF data using PIL
+            image_pil = Image.open(fp)
+            exif_data = image_pil._getexif()
+            if exif_data:
+                # Clean and convert EXIF data to JSON
+                clean_data = clean_exif_data(exif_data)
+                exif_data_json = json.dumps(clean_data)
+            else:
+                exif_data_json = json.dumps({})
+
+        # Initialize DynamoDB resource and table
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table('test1')
+
+        # Write to DynamoDB
+        table.put_item(
+        Item={
+                'image_key': key,
+                'exif_data': exif_data_json  # Assuming exif_data_json is a string
+            }
+        )
         
-      # Read EXIF data using PIL
-        image_pil = Image.open(fp)
-        exif_data = image_pil._getexif()
-        if exif_data:
-            # Clean and convert EXIF data to JSON
-            clean_data = clean_exif_data(exif_data)
-            exif_data_json = json.dumps(clean_data)
-        else:
-            exif_data_json = json.dumps({})
+        logger.info(f"Successfully wrote EXIF data for {key} to DynamoDB")
+        return {'statusCode': 200, 'body': 'Successfully wrote to DynamoDB'}
 
-
-    return {
-        'statusCode': 200,
-        'body': exif_data_json
-    }
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+        return {'statusCode': 500, 'body': 'Internal Server Error'}
