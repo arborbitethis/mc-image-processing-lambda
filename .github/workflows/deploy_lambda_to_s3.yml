@@ -62,3 +62,9 @@ jobs:
     # Upload the Lambda function ZIP file to the S3 bucket
     - name: Upload Lambda to S3
       run: aws s3 cp lambda_function.zip s3://mc-portfolio-s3-4-lambdas/img_processing/image_time_analysis.zip
+
+    - name: Update Lambda Function Code
+      run: aws lambda update-function-code \
+        --function-name ImageExifExtraction \
+        --s3-bucket mc-portfolio-s3-4-lambdas \
+        --s3-key img_processing/image_time_analysis.zip
