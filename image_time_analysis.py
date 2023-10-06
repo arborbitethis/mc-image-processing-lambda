@@ -73,7 +73,7 @@ def lambda_handler(event, context):
         table.put_item(
         Item={
                 'image_key': key,
-                'exif_data': exif_data_json  # Assuming exif_data_json is a string
+                'exif_data': exif_data_json  
             }
         )
         
