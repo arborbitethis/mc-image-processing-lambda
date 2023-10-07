@@ -63,6 +63,14 @@ jobs:
     - name: Upload Lambda to S3
       run: aws s3 cp lambda_function.zip s3://mc-portfolio-s3-4-lambdas/img_processing/image_time_analysis.zip
 
+    # update lambda and layer code in AWS  
+    - name: Update Lambda Function Code
+      run: aws lambda update-function-code --function-name ImageExifExtraction --s3-bucket mc-portfolio-s3-4-lambdas --s3-key img_processing/image_time_analysis.zip
+
+    - name: Wait before updating function configuration
+      run: sleep 20  # Wait for 20 seconds
+
+
     # Publish a new layer version
     - name: Publish New Layer Version
       run: |
@@ -73,10 +81,6 @@ jobs:
         --output text)
         echo "LAYER_VERSION=$LAYER_VERSION" >> $GITHUB_ENV
 
-    # update lambda and layer code in AWS  
-    - name: Update Lambda Function Code
-      run: aws lambda update-function-code --function-name ImageExifExtraction --s3-bucket mc-portfolio-s3-4-lambdas --s3-key img_processing/image_time_analysis.zip
-
-    # Update Lambda function to use the new layer version
+    # Update Lambda function configuration to use the new layer version
     - name: Update Lambda Function Configuration
       run: aws lambda update-function-configuration --function-name ImageExifExtraction --layers ${{ env.LAYER_VERSION }}
