@@ -79,4 +79,4 @@ jobs:
 
     # Update Lambda function to use the new layer version
     - name: Update Lambda Function Configuration
-      run: aws lambda update-function-configuration --function-name your-function-name --layers ${{ env.LAYER_VERSION }}
+      run: aws lambda update-function-configuration --function-name ImageExifExtraction --layers ${{ env.LAYER_VERSION }}
