@@ -63,5 +63,20 @@ jobs:
     - name: Upload Lambda to S3
       run: aws s3 cp lambda_function.zip s3://mc-portfolio-s3-4-lambdas/img_processing/image_time_analysis.zip
 
+    # Publish a new layer version
+    - name: Publish New Layer Version
+      run: |
+        LAYER_VERSION=$(aws lambda publish-layer-version \
+        --layer-name image-time-analysis-layer \
+        --content S3Bucket=mc-portfolio-s3-4-lambdas,S3Key=img_processing/dependency_layer.zip \
+        --query 'LayerVersionArn' \
+        --output text)
+        echo "LAYER_VERSION=$LAYER_VERSION" >> $GITHUB_ENV
+
+    # update lambda and layer code in AWS  
     - name: Update Lambda Function Code
       run: aws lambda update-function-code --function-name ImageExifExtraction --s3-bucket mc-portfolio-s3-4-lambdas --s3-key img_processing/image_time_analysis.zip
+
+    # Update Lambda function to use the new layer version
+    - name: Update Lambda Function Configuration
+      run: aws lambda update-function-configuration --function-name your-function-name --layers ${{ env.LAYER_VERSION }}
